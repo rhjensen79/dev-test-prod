@@ -133,6 +133,9 @@ resources:
          - sed -i 's/#PasswordAuthentication no/PasswordAuthentication yes/g'  /etc/ssh/sshd_config
          - sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g'  /etc/ssh/sshd_config
          - systemctl restart sshd
+         - apt install apache2 git -y
+         - mv ./simple-website/www/* /var/www/html/
+
       networks:
         - network: '${resource.Network.id}'
   Network:

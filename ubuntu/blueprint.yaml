@@ -1,0 +1,143 @@
+name: ubuntu
+version: 0.0.1
+inputs:
+  rootpassword:
+    type: string
+    description: Root Password
+    default: VMware1!
+    title: Root Password
+    encrypted: true
+  novm:
+    type: integer
+    description: Number of VM's 1-10
+    default: 1
+    title: No. of VM's
+    maximum: 10
+  image:
+    type: string
+    enum:
+      - ubuntu
+    description: Image
+    default: ubuntu
+    title: OS Image
+  sla:
+    type: string
+    description: Service Level Agreement
+    default: 'network:production'
+    title: SLA
+    oneOf:
+      - title: Production
+        const: 'network:production'
+      - title: Test
+        const: 'network:test'
+  flavor:
+    type: string
+    enum:
+      - small
+      - medium
+      - large
+    description: Size of VM's
+    default: small
+    title: VM Size
+  region:
+    type: string
+    description: Region
+    default: 'region:copenhagen'
+    title: Region
+    oneOf:
+      - title: Copenhagen (vSphere)
+        const: 'region:copenhagen'
+      - title: Frankfurt (AWS)
+        const: 'region:frankfurt'
+      - title: Stockholm (AWS)
+        const: 'region:stockholm'
+      - title: Ireland (Azure)
+        const: 'region:ireland'
+      - title: Nederlands (GCP)
+        const: 'region:netherlands'
+  requestid:
+    type: string
+    description: Request ID for approval
+    default: 123456
+    title: Request ID
+  notify:
+    type: boolean
+    description: Notify when deployment is finished
+    default: true
+    title: Notify
+  update:
+    type: boolean
+    description: Update all packages on VM
+    default: true
+    title: Update
+  active_directory:
+    type: boolean
+    description: Create Active Directory computer account during. deployment
+    default: true
+    title: Active Directory
+  dns:
+    type: boolean
+    description: Create DNS record during. deployment
+    default: true
+    title: DNS
+  ipam:
+    type: boolean
+    description: Create IPAM record during. deployment
+    default: true
+    title: IPAM
+resources:
+  VM:
+    type: Cloud.Machine
+    properties:
+      #---Custom VM Properties---
+      projectname: '${env.projectName}'
+      deploymentname: '${env.deploymentName}'
+      blueprintname: '${env.blueprintName}'
+      blueprintversion: '${env.blueprintVersion}'
+      timesaved: '30'
+      type: 'vm'
+      #---Custom VM Properties---
+      notify: '${input.notify}'
+      name: '${self.resourceName}'
+      image: '${input.image}'
+      flavor: '${input.flavor}'
+      count: '${input.novm}'
+      constraints:
+        - tag: '${input.region}'
+      tags:
+        - key: name
+          value: linux
+        - key: requestid
+          value: '${input.requestid}'
+      cloudConfigSettings: null
+      #Making sure that cloudconfig is finished, before continue
+      #        phoneHomeShouldWait: true
+      #        phoneHomeTimeoutSeconds: 600
+      #        phoneHomeFailOnTimeout: true
+      cloudConfig: |
+        #cloudconfig
+        #rsyslog:
+        # remotes:
+        #  log_serv: "*.* @syslog.vmwdk.dk:514"
+        package_update: '${input.update}'
+        package_upgrade: '${input.update}'
+        package:
+         - wget
+         - git
+        hostname: '${self.resourceName}'
+        runcmd:
+        #Add Public Github key to Autorized_keys
+         - curl https://github.com/rhjensen79.keys >> /root/.ssh/authorized_keys
+        #Change Root password and restart ssh service
+         - echo root:'${input.rootpassword}'|sudo chpasswd
+         - sed -i 's/#PasswordAuthentication no/PasswordAuthentication yes/g'  /etc/ssh/sshd_config
+         - sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g'  /etc/ssh/sshd_config
+         - systemctl restart sshd
+      networks:
+        - network: '${resource.Network.id}'
+  Network:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: '${input.sla}'

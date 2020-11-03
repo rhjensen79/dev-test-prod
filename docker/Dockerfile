@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 LABEL maintainer="Robert Jensen robert@robert-jensen.dk"
-LABEL description="Container to run dev-test-prod CI/CD Pipeline
+LABEL description="Container to run dev-test-prod CI/CD Pipeline"
 WORKDIR /tmp
 RUN apt-get update && apt upgrade -y && apt install -y \ 
     curl \
